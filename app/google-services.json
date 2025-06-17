@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "878195465650",
+    "project_id": "appjonay",
+    "storage_bucket": "appjonay.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878195465650:android:2e7f8349dbadc62e8158ab",
+        "android_client_info": {
+          "package_name": "com.finalProyecto.appjonay"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmick0s4VcmrOlCiCRGtQMbt-4hn2YbZg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
