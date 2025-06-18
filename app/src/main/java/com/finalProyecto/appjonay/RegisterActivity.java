@@ -1,20 +1,19 @@
 package com.finalProyecto.appjonay;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
     private EditText etNombre, etApellidos, etEmail, etTelefono, etPassword;
-    private Spinner spinnerRol;
     private Button btnRegistrar;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -30,7 +29,6 @@ public class RegisterActivity extends AppCompatActivity {
         etEmail = findViewById(R.id.etEmail);
         etTelefono = findViewById(R.id.etTelefono);
         etPassword = findViewById(R.id.etPassword);
-        spinnerRol = findViewById(R.id.spinnerRol);
         btnRegistrar = findViewById(R.id.btnRegistrar);
         btnVolver = findViewById(R.id.btnVolver);
 
@@ -39,13 +37,6 @@ public class RegisterActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
-
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.roles_array, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerRol.setAdapter(adapter);
-
-        btnRegistrar.setOnClickListener(v -> registrarUsuario());
     }
 
     private void registrarUsuario() {
@@ -54,7 +45,6 @@ public class RegisterActivity extends AppCompatActivity {
         String email = etEmail.getText().toString().trim();
         String telefono = etTelefono.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
-        String rol = spinnerRol.getSelectedItem().toString();
         String estado = "pendiente"; // Por defecto
 
         // Validación simple
@@ -67,21 +57,37 @@ public class RegisterActivity extends AppCompatActivity {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        String uid = mAuth.getCurrentUser().getUid();
-                        Map<String, Object> usuario = new HashMap<>();
-                        usuario.put("nombre", nombre);
-                        usuario.put("apellidos", apellidos);
-                        usuario.put("email", email);
-                        usuario.put("telefono", telefono);
-                        usuario.put("rol", rol);
-                        usuario.put("estado", estado);
+                        // Enviar email de verificación
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            user.sendEmailVerification()
+                                    .addOnCompleteListener(verifyTask -> {
+                                        if (verifyTask.isSuccessful()) {
+                                            // Guardar datos en Firestore SOLO si el email se ha enviado
+                                            String uid = user.getUid();
+                                            Map<String, Object> usuario = new HashMap<>();
+                                            usuario.put("nombre", nombre);
+                                            usuario.put("apellidos", apellidos);
+                                            usuario.put("email", email);
+                                            usuario.put("telefono", telefono);
+                                            usuario.put("estado", estado);
 
-                        db.collection("usuarios").document(uid)
-                                .set(usuario)
-                                .addOnSuccessListener(aVoid ->
-                                        Toast.makeText(this, "Usuario registrado. Esperando confirmación del administrador.", Toast.LENGTH_LONG).show())
-                                .addOnFailureListener(e ->
-                                        Toast.makeText(this, "Error al guardar usuario: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                                            db.collection("usuarios").document(uid)
+                                                    .set(usuario)
+                                                    .addOnSuccessListener(aVoid -> {
+                                                        Toast.makeText(this, "Registro correcto. Confirma tu email antes de iniciar sesión.", Toast.LENGTH_LONG).show();
+                                                        // Opcional: cerrar esta pantalla y volver al login
+                                                        startActivity(new Intent(this, LoginActivity.class));
+                                                        finish();
+                                                    })
+                                                    .addOnFailureListener(e ->
+                                                            Toast.makeText(this, "Error al guardar usuario: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                                                    );
+                                        } else {
+                                            Toast.makeText(this, "Error al enviar email de verificación.", Toast.LENGTH_LONG).show();
+                                        }
+                                    });
+                        }
                     } else {
                         Toast.makeText(this, "Error al registrar: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
                     }

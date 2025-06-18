@@ -55,6 +55,29 @@
         android:layout_marginBottom="12dp"
         app:cornerRadius="16dp"/>
 
+    <!-- Botón de Iniciar sesión con Google -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/googleSignInButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Iniciar sesión con Google"
+        app:icon="@drawable/google_logo"
+        app:iconGravity="textStart"
+        app:iconPadding="12dp"
+        app:iconSize="24dp"
+        app:cornerRadius="16dp"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/resendVerificationButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Reenviar correo de verificación"
+        app:cornerRadius="16dp"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_marginTop="8dp"/>
+
+
     <!-- Botón de Registrarse -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/registerButton"
@@ -62,6 +85,10 @@
         android:layout_height="wrap_content"
         android:text="Registrarse"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        app:cornerRadius="16dp"/>
+        app:cornerRadius="16dp"
+        android:layout_marginBottom="16dp"/>
+
+
 
 </LinearLayout>
+

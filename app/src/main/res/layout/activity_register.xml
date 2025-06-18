@@ -81,12 +81,6 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Spinner para Rol -->
-        <Spinner
-            android:id="@+id/spinnerRol"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:background="@android:drawable/btn_dropdown" />
 
         <!-- Botón Registrar -->
         <com.google.android.material.button.MaterialButton

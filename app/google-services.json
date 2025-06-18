@@ -12,7 +12,20 @@
           "package_name": "com.finalProyecto.appjonay"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "878195465650-8u56htstlkc66769vhf8rco779op852t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.finalProyecto.appjonay",
+            "certificate_hash": "07afe9b43eac19060a8935cc9d3331b1222e8e4a"
+          }
+        },
+        {
+          "client_id": "878195465650-k6str3ti0sbg2nks15oo3jev1m62cec4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAmick0s4VcmrOlCiCRGtQMbt-4hn2YbZg"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "878195465650-k6str3ti0sbg2nks15oo3jev1m62cec4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
