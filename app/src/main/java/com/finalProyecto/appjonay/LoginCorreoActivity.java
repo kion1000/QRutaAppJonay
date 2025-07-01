@@ -17,6 +17,7 @@ public class LoginCorreoActivity extends AppCompatActivity {
     private EditText emailEditText, passwordEditText;
     private Button loginButton, resendVerificationButton;
     private Button btnVolver;
+    private Button btnRecuperarPassword;
 
 
     @Override
@@ -31,10 +32,13 @@ public class LoginCorreoActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.loginButton);
         resendVerificationButton = findViewById(R.id.resendVerificationButton);
         btnVolver = findViewById(R.id.btnVolver);
+        btnRecuperarPassword = findViewById(R.id.btnRecuperarPassword);
 
         loginButton.setOnClickListener(v -> loginUser());
         resendVerificationButton.setOnClickListener(v -> resendVerificationEmail());
         btnVolver.setOnClickListener(v -> finish());
+        btnRecuperarPassword.setOnClickListener(v -> recuperarPassword());
+
     }
 
     private void loginUser() {
@@ -91,4 +95,22 @@ public class LoginCorreoActivity extends AppCompatActivity {
                     }
                 });
     }
+
+    private void recuperarPassword() {
+        String email = emailEditText.getText().toString().trim();
+        if (TextUtils.isEmpty(email)) {
+            Toast.makeText(this, "Introduce tu email para recuperar la contraseña.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mAuth.sendPasswordResetEmail(email)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(this, "Correo de recuperación enviado. Revisa tu bandeja.", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(this, "No se pudo enviar el correo: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
 }

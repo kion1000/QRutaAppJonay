@@ -56,7 +56,18 @@
         android:layout_marginBottom="12dp"
         app:cornerRadius="16dp"/>
 
-    <!-- Añade esto al final del LinearLayout, debajo del botón de login -->
+    <!-- Boton de Olvidastes tu contraseña.-->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnRecuperarPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="¿Olvidaste tu contraseña?"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        app:cornerRadius="16dp"
+        android:layout_marginTop="8dp"/>
+
+
+    <!-- Boton de Reenviar Correo de Verificacion -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/resendVerificationButton"
         android:layout_width="match_parent"
