@@ -45,6 +45,14 @@ public class MainActivity extends AppCompatActivity {
                             mAuth.signOut();
                             goToLogin();
                         });
+
+                        // *** NUEVO: Botón ESCANEAR ALBARÁN ***
+                        Button btnEscanear = findViewById(R.id.btnEscanear);
+                        btnEscanear.setOnClickListener(v -> {
+                            Intent intent = new Intent(MainActivity.this, EscanearAlbaranActivity.class);
+                            startActivity(intent);
+                        });
+
                     }
                 } else {
                     Log.e("MainActivity", "Error al recargar usuario: ", task.getException());

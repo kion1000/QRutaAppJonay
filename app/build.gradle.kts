@@ -51,6 +51,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.preference)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.lifecycle)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -68,6 +70,17 @@ dependencies {
 
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation ("com.google.android.material:material:1.11.0")
+    implementation ("com.google.mlkit:barcode-scanning:17.2.0")
+    // Si usas build.gradle.kts
+    dependencies {
+        implementation("androidx.camera:camera-core:1.3.3")
+        implementation("androidx.camera:camera-camera2:1.3.3")
+        implementation("androidx.camera:camera-lifecycle:1.3.3")
+        implementation("androidx.camera:camera-view:1.3.3")
+        implementation("androidx.camera:camera-extensions:1.3.3")
+        // Y para escanear códigos:
+        implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    }
 
 
 
