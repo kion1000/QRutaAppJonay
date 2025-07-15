@@ -23,7 +23,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:startIconDrawable="@android:drawable/ic_menu_edit">
+            app:startIconDrawable="@android:drawable/ic_menu_edit"
+            app:startIconTint="@null">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etNombre"
@@ -36,7 +37,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:startIconDrawable="@android:drawable/ic_menu_edit">
+            app:startIconDrawable="@android:drawable/ic_menu_edit"
+            app:startIconTint="@null">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etApellidos"
@@ -49,7 +51,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:startIconDrawable="@android:drawable/ic_dialog_email">
+            app:startIconDrawable="@android:drawable/ic_dialog_email"
+            app:startIconTint="@null">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEmail"
@@ -63,7 +66,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:startIconDrawable="@android:drawable/ic_menu_call">
+            app:startIconDrawable="@android:drawable/ic_menu_call"
+            app:startIconTint="@null">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etTelefono"
@@ -77,7 +81,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:startIconDrawable="@android:drawable/ic_lock_lock">
+            app:startIconDrawable="@android:drawable/ic_lock_lock"
+            app:startIconTint="@null">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etPassword"

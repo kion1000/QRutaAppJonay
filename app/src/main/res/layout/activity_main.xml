@@ -29,6 +29,7 @@
         android:layout_height="wrap_content"
         android:text="Escanear Albarán"
         app:icon="@drawable/ic_qr"
+        app:iconTint="@null"
         app:iconGravity="textStart"
         app:iconPadding="12dp"
         app:iconSize="24dp"

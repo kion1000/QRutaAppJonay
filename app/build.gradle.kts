@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.finalProyecto.appjonay"
-        minSdk = 34
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -71,6 +71,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation ("com.google.android.material:material:1.11.0")
     implementation ("com.google.mlkit:barcode-scanning:17.2.0")
+    implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
     // Si usas build.gradle.kts
     dependencies {
         implementation("androidx.camera:camera-core:1.3.3")
@@ -80,6 +81,7 @@ dependencies {
         implementation("androidx.camera:camera-extensions:1.3.3")
         // Y para escanear códigos:
         implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
     }
 
 

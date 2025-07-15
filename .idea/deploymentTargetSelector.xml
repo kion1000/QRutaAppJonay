@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-06-18T10:24:07.603833900Z">
+        <DropdownSelection timestamp="2025-07-15T11:54:47.536354600Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\jonay\.android\avd\Mi_Telefono_2_API_35.avd" />

@@ -1,42 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/camera_container"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".EscanearAlbaranActivity">
 
-    <!-- Vista previa de la cámara a pantalla completa -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/previewView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- Texto de ayuda arriba, centrado -->
-
-    <!-- Botón cerrar abajo a la derecha -->
-
+    <!-- Mensaje de ayuda arriba -->
     <TextView
         android:id="@+id/tvAyuda"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="36dp"
         android:background="#CCFFFFFF"
         android:elevation="4dp"
-        android:padding="12dp"
+        android:padding="16dp"
         android:text="Escanea el QR del albarán"
         android:textColor="#222"
-        android:textSize="18sp"
+        android:textSize="20sp"
         android:textStyle="bold" />
 
-    <Button
+    <!-- Botón cerrar (opcional) -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCerrar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="24dp"
-        android:elevation="4dp"
-        android:text="Cerrar" />
-</FrameLayout>
+        android:layout_margin="28dp"
+        android:text="Cerrar"
+        app:icon="@drawable/ic_close"
+        app:iconGravity="textStart"
+        app:cornerRadius="16dp"
+        android:textColor="#FFF"
+        app:backgroundTint="#F44336" />
 
+</FrameLayout>

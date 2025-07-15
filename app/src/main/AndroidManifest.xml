@@ -8,6 +8,7 @@
         android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
 
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -23,6 +24,8 @@
         <activity android:name=".LoginActivity" />
         <!-- LoginCorreoActivity -->
         <activity android:name=".LoginCorreoActivity" />
+        <!-- DetalleAlbaranActivity -->
+        <activity android:name=".DetalleAlbaranActivity" />
         <!-- RegisterActivity -->
         <activity android:name=".RegisterActivity" />
         <!-- MainActivity -->
@@ -37,7 +40,11 @@
             </intent-filter>
         </activity>
         <!-- EscanearAlbaranActivity -->
-        <activity android:name=".EscanearAlbaranActivity" />
+        <activity
+            android:name=".EscanearAlbaranActivity"
+            android:screenOrientation="portrait"
+            tools:ignore="DuplicateActivity" />
+
 
     </application>
 
