@@ -70,7 +70,7 @@ dependencies {
 
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation ("com.google.android.material:material:1.11.0")
-    implementation ("com.google.mlkit:barcode-scanning:17.2.0")
+
     implementation ("com.journeyapps:zxing-android-embedded:4.3.0")
     // Si usas build.gradle.kts
     dependencies {
@@ -80,7 +80,7 @@ dependencies {
         implementation("androidx.camera:camera-view:1.3.3")
         implementation("androidx.camera:camera-extensions:1.3.3")
         // Y para escanear códigos:
-        implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
 
     }
 
