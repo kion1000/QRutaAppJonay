@@ -37,6 +37,19 @@
         android:layout_marginBottom="16dp"/>
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnEscanearOcr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Escanear Albarán IA"
+        app:icon="@drawable/ic_qr"
+        app:iconTint="@null"
+        app:iconGravity="textStart"
+        app:iconPadding="12dp"
+        app:iconSize="24dp"
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_marginBottom="16dp"/>
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCerrarSesion"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
