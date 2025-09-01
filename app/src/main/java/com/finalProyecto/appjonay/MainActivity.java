@@ -60,6 +60,13 @@ public class MainActivity extends AppCompatActivity {
                             Intent intent = new Intent(MainActivity.this, EscanearAlbaranActivity.class);
                             startActivity(intent);
                         });
+
+                        // Botón ESCANEAR ALBARÁN IA (OCR)
+                        Button btnEscanearOcr = findViewById(R.id.btnEscanearOcr);
+                        btnEscanearOcr.setOnClickListener(v -> {
+                            Intent intent = new Intent(MainActivity.this, OcrAlbaranActivity.class);
+                            startActivity(intent);
+                        });
                     }
                 } else {
                     Log.e("MainActivity", "Error al recargar usuario: ", task.getException());
