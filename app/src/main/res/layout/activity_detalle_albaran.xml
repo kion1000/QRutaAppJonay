@@ -48,6 +48,21 @@
             style="@style/TextAppearance.MaterialComponents.Body1"/>
 
         <TextView
+            android:id="@+id/tvCP"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            style="@style/TextAppearance.MaterialComponents.Body1" />
+
+        <TextView
+            android:id="@+id/tvLocalidad"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            style="@style/TextAppearance.MaterialComponents.Body1" />
+
+
+        <TextView
             android:id="@+id/tvTelefono"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
