@@ -2,5 +2,8 @@
     <string name="app_name">QRuta</string>
     <string name="default_web_client_id">TU_CLIENT_ID_DE_Firebase.apps.googleusercontent.com</string>
     <string name="logo_login">Logo de QRuta</string>
+    <string name="add_to_route">Añadir a ruta</string>
+    <string name="close">Cerrar</string>
+
 
 </resources>

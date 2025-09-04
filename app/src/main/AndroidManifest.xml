@@ -2,17 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permiso de cámara: SIEMPRE ANTES DE <application> -->
+    <!-- Cámara -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
 
-
     <application
+        android:name=".MyApp"
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -20,15 +18,7 @@
         android:theme="@style/Theme.AppJonay"
         tools:targetApi="31">
 
-        <!-- LoginActivity -->
-        <activity android:name=".LoginActivity" />
-        <!-- LoginCorreoActivity -->
-        <activity android:name=".LoginCorreoActivity" />
-        <!-- DetalleAlbaranActivity -->
-        <activity android:name=".DetalleAlbaranActivity" />
-        <!-- RegisterActivity -->
-        <activity android:name=".RegisterActivity" />
-        <!-- MainActivity -->
+        <!-- Pantalla de inicio -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -39,19 +29,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- EscanearAlbaranActivity -->
+
+        <!-- Resto de pantallas -->
+        <activity android:name=".LoginActivity" />
+        <activity android:name=".LoginCorreoActivity" />
+        <activity android:name=".RegisterActivity" />
+        <activity android:name=".DetalleAlbaranActivity" />
+        <activity
+            android:name=".ManualAlbaranActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name=".EscanearAlbaranActivity"
-            android:screenOrientation="portrait"
-            tools:ignore="DuplicateActivity" />
+            android:screenOrientation="portrait" />
         <activity
             android:name=".CaptureActivityPortrait"
             android:screenOrientation="portrait"
             android:exported="false"
             android:stateNotNeeded="true"
             android:windowSoftInputMode="stateAlwaysHidden" />
+        <activity
+            android:name=".OcrAlbaranActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
 
-        <!-- FileProvider  -->
+        <!-- FileProvider para la cámara -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -59,15 +62,9 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"/>
+                android:resource="@xml/file_paths" />
         </provider>
-        <!-- OCR Activity  -->
-        <activity
-            android:name=".OcrAlbaranActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
 
 
     </application>
-
 </manifest>

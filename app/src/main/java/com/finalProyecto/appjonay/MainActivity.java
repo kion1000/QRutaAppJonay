@@ -8,9 +8,9 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.android.gms.auth.api.signin.GoogleSignIn;             // ✅ lo usamos para el client
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;      // ✅ NUEVO
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;     // ✅ NUEVO
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -37,41 +37,49 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         setContentView(R.layout.activity_main);
 
-                        // Mostrar mensaje de bienvenida (⚠️ solo desde Firebase/Firestore)
+                        // Bienvenida
                         mostrarBienvenida();
 
-                        // Botón cerrar sesión: Firebase + Google
+                        // --- Cerrar sesión (Firebase + Google) ---
                         Button btnCerrarSesion = findViewById(R.id.btnCerrarSesion);
-                        btnCerrarSesion.setOnClickListener(v -> {
-                            // 1) Firebase fuera
-                            mAuth.signOut();
-                            // 2) Google fuera (si no hubo Google, no pasa nada)
-                            try {
-                                getGoogleClient().signOut().addOnCompleteListener(t -> goToLogin());
-                            } catch (Exception e) {
-                                // En dispositivos sin GMS no pasa nada
-                                goToLogin();
-                            }
-                        });
+                        if (btnCerrarSesion != null) {
+                            btnCerrarSesion.setOnClickListener(v -> {
+                                mAuth.signOut();
+                                try {
+                                    getGoogleClient().signOut().addOnCompleteListener(t -> goToLogin());
+                                } catch (Exception e) {
+                                    goToLogin();
+                                }
+                            });
+                        }
 
-                        // Botón ESCANEAR ALBARÁN
+                        // --- Escanear por QR ---
                         Button btnEscanear = findViewById(R.id.btnEscanear);
-                        btnEscanear.setOnClickListener(v -> {
-                            Intent intent = new Intent(MainActivity.this, EscanearAlbaranActivity.class);
-                            startActivity(intent);
-                        });
+                        if (btnEscanear != null) {
+                            btnEscanear.setOnClickListener(v ->
+                                    startActivity(new Intent(MainActivity.this, EscanearAlbaranActivity.class))
+                            );
+                        }
 
-                        // Botón ESCANEAR ALBARÁN IA (OCR)
+                        // --- Escanear por OCR (ML Kit) ---
                         Button btnEscanearOcr = findViewById(R.id.btnEscanearOcr);
-                        btnEscanearOcr.setOnClickListener(v -> {
-                            Intent intent = new Intent(MainActivity.this, OcrAlbaranActivity.class);
-                            startActivity(intent);
-                        });
+                        if (btnEscanearOcr != null) {
+                            btnEscanearOcr.setOnClickListener(v ->
+                                    startActivity(new Intent(MainActivity.this, OcrAlbaranActivity.class))
+                            );
+                        }
+
+                        // --- ✅ NUEVO: Entrada manual ---
+                        Button btnEntradaManual = findViewById(R.id.btnEntradaManual);
+                        if (btnEntradaManual != null) {
+                            btnEntradaManual.setOnClickListener(v ->
+                                    startActivity(new Intent(MainActivity.this, ManualAlbaranActivity.class))
+                            );
+                        }
                     }
                 } else {
                     Log.e("MainActivity", "Error al recargar usuario: ", task.getException());
                     mAuth.signOut();
-                    // Intenta también cerrar sesión de Google por si estaba activo
                     try {
                         getGoogleClient().signOut().addOnCompleteListener(t -> goToLogin());
                     } catch (Exception e) {
@@ -82,24 +90,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ✅ Bienvenida SIEMPRE basada en FirebaseAuth + Firestore
+    // Bienvenida basada en FirebaseAuth + Firestore
     private void mostrarBienvenida() {
         TextView tvBienvenida = findViewById(R.id.tvBienvenida);
 
         FirebaseUser user = mAuth.getCurrentUser();
         if (user == null) {
-            tvBienvenida.setText("¡Bienvenido!");
+            if (tvBienvenida != null) tvBienvenida.setText("¡Bienvenido!");
             return;
         }
 
-        // Si el proveedor fue Google, FirebaseUser.getDisplayName() suele venir relleno
         String displayName = user.getDisplayName();
         if (displayName != null && !displayName.isEmpty()) {
-            tvBienvenida.setText("¡Bienvenido, " + displayName + "!");
+            if (tvBienvenida != null) tvBienvenida.setText("¡Bienvenido, " + displayName + "!");
             return;
         }
 
-        // Si no hay displayName (email/contraseña): Firestore o alias de email
         mostrarNombreUsuarioDesdeFirestore(tvBienvenida);
     }
 
@@ -111,6 +117,8 @@ public class MainActivity extends AppCompatActivity {
             DocumentReference userRef = db.collection("usuarios").document(uid);
 
             userRef.get().addOnSuccessListener(documentSnapshot -> {
+                if (tvBienvenida == null) return;
+
                 if (documentSnapshot.exists()) {
                     String nombre = documentSnapshot.getString("nombre");
                     String apellidos = documentSnapshot.getString("apellidos");
@@ -119,15 +127,15 @@ public class MainActivity extends AppCompatActivity {
                     } else if (nombre != null && !nombre.isEmpty()) {
                         tvBienvenida.setText("¡Bienvenido, " + nombre.toUpperCase() + "!");
                     } else {
-                        // Fallback: alias desde email
                         tvBienvenida.setText("¡Bienvenido, " + aliasDesdeEmail(currentUser) + "!");
                     }
                 } else {
-                    // Fallback: alias desde email
                     tvBienvenida.setText("¡Bienvenido, " + aliasDesdeEmail(currentUser) + "!");
                 }
             }).addOnFailureListener(e -> {
-                tvBienvenida.setText("¡Bienvenido, " + aliasDesdeEmail(currentUser) + "!");
+                if (tvBienvenida != null) {
+                    tvBienvenida.setText("¡Bienvenido, " + aliasDesdeEmail(currentUser) + "!");
+                }
             });
         }
     }
@@ -139,11 +147,10 @@ public class MainActivity extends AppCompatActivity {
         return at > 0 ? email.substring(0, at) : email;
     }
 
-    // ✅ Cliente de Google para cerrar sesión si procede
     private GoogleSignInClient getGoogleClient() {
         GoogleSignInOptions gso = new GoogleSignInOptions
                 .Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestEmail() // no hace falta requestIdToken para signOut
+                .requestEmail()
                 .build();
         return GoogleSignIn.getClient(this, gso);
     }
