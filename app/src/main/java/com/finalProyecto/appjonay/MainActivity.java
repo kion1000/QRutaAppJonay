@@ -76,6 +76,11 @@ public class MainActivity extends AppCompatActivity {
                                     startActivity(new Intent(MainActivity.this, ManualAlbaranActivity.class))
                             );
                         }
+
+                        Button btnVerRuta = findViewById(R.id.btnVerRuta);
+                        btnVerRuta.setOnClickListener(v ->
+                                startActivity(new Intent(MainActivity.this, RutaDeHoyActivity.class)));
+
                     }
                 } else {
                     Log.e("MainActivity", "Error al recargar usuario: ", task.getException());

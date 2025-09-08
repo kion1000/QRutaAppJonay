@@ -35,6 +35,8 @@
         <activity android:name=".LoginCorreoActivity" />
         <activity android:name=".RegisterActivity" />
         <activity android:name=".DetalleAlbaranActivity" />
+        <activity android:name=".RutaDeHoyActivity" />
+
         <activity
             android:name=".ManualAlbaranActivity"
             android:exported="false"
