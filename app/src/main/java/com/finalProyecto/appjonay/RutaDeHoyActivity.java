@@ -56,8 +56,23 @@ public class RutaDeHoyActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        // Primero pinto lo que haya local
         refresh();
+
+        // Luego traigo nube y hago merge (sin duplicar)
+        String uid = com.finalProyecto.appjonay.data.CloudRouteStore.currentUid();
+        if (uid != null) {
+            String dayKey = com.finalProyecto.appjonay.data.CloudRouteStore.todayKey();
+            com.finalProyecto.appjonay.data.CloudRouteStore.loadStops(uid, dayKey, (stops, e) -> {
+                if (e == null && stops != null && !stops.isEmpty()) {
+                    com.finalProyecto.appjonay.data.StopRepository.get().mergeRemote(stops);
+                    refresh(); // repinto con lo fusionado
+                }
+            });
+        }
     }
+
 
     private void refresh() {
         List<Stop> data = StopRepository.get().getAll();
