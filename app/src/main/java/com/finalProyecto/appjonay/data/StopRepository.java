@@ -10,47 +10,59 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class StopRepository {
+public class StopRepository {
+    private static StopRepository INSTANCE;
+    public static StopRepository get() { return INSTANCE; }
 
-    // ---------- Singleton ----------
-    private static volatile StopRepository INSTANCE;
+    /** ✅ Nuevo: saber si está inicializado */
+    public static boolean isReady() { return INSTANCE != null; }
 
-    /** Llamar una vez (p.ej., en MyApp.onCreate) */
+    /** ✅ Nuevo: inicializador seguro (usa Application Context) */
     public static synchronized void init(Context ctx) {
         if (INSTANCE == null) {
             INSTANCE = new StopRepository(ctx.getApplicationContext());
         }
     }
 
-    /** Devuelve la instancia ya inicializada o lanza si no lo está */
-    public static StopRepository get() {
-        if (INSTANCE == null) {
-            throw new IllegalStateException("StopRepository no inicializado. Llama a StopRepository.init(context) primero.");
-        }
-        return INSTANCE;
-    }
-
-    /** Por si quieres comprobar y re-inicializar defensivamente en alguna Activity */
-    public static boolean isReady() { return INSTANCE != null; }
-
-    // ---------- Estado ----------
     private final Context app;
     private final ArrayList<Stop> stops = new ArrayList<>();
-
     private static final String SP  = "route_repo";
     private static final String KEY = "stops_today";
 
-    // Constructor privado (usa init)
     private StopRepository(Context app) {
         this.app = app;
         load();
     }
 
-    // ---------- API ----------
     public synchronized void add(Stop s) {
         stops.add(s);
         save();
     }
+
+    /** ✅ Nuevo: añade sólo si no existe ya */
+    public synchronized boolean addIfNotExists(Stop s) {
+        if (existsDuplicate(s)) return false;
+        add(s);
+        return true;
+    }
+
+    /** ✅ Nuevo: comprueba duplicados por id_albaran o por (dirección+cp+localidad) */
+    public synchronized boolean existsDuplicate(Stop s) {
+        if (s == null) return false;
+        String key = dedupeKey(s);
+        for (Stop it : stops) {
+            if (dedupeKey(it).equalsIgnoreCase(key)) return true;
+        }
+        return false;
+    }
+
+    private String dedupeKey(Stop s) {
+        String id = safe(s.albaranId);
+        if (!id.isEmpty()) return "id:" + id;
+        return "addr:" + safe(s.direccion) + "|" + safe(s.cp) + "|" + safe(s.localidad);
+    }
+
+    private static String safe(String x) { return x == null ? "" : x.trim(); }
 
     public synchronized void removeAt(int position) {
         if (position >= 0 && position < stops.size()) {
@@ -70,7 +82,6 @@ public final class StopRepository {
         return Collections.unmodifiableList(stops);
     }
 
-    // ---------- Persistencia ----------
     private void save() {
         try {
             JSONArray arr = new JSONArray();
@@ -85,9 +96,7 @@ public final class StopRepository {
             JSONArray arr = new JSONArray(raw);
             stops.clear();
             for (int i = 0; i < arr.length(); i++) {
-                JSONObject o = arr.getJSONObject(i);
-                // Requiere que Stop tenga la sobrecarga fromJson(JSONObject)
-                stops.add(Stop.fromJson(o));
+                stops.add(Stop.fromJson(arr.getJSONObject(i)));
             }
         } catch (Throwable ignored) {}
     }

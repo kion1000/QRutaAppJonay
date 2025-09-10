@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="24dp">
@@ -19,103 +20,224 @@
             android:gravity="center"
             android:layout_marginBottom="18dp"/>
 
-        <TextView
-            android:id="@+id/tvNumeroAlbaran"
+        <!-- ====== PANEL LECTURA (TextViews) ====== -->
+        <LinearLayout
+            android:id="@+id/panelLectura"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvFecha"
+            <TextView
+                android:id="@+id/tvNumeroAlbaran"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvFecha"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvCliente"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvDireccion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvCP"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1" />
+
+            <TextView
+                android:id="@+id/tvLocalidad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1" />
+
+            <TextView
+                android:id="@+id/tvTelefono"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvDNI"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvCIF"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvProducto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvCantidad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvObservaciones"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+
+            <TextView
+                android:id="@+id/tvEstado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/TextAppearance.MaterialComponents.Body1"/>
+        </LinearLayout>
+
+        <!-- Botón Editar / Guardar / Cancelar -->
+        <Button
+            android:id="@+id/btnEditar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            android:text="Editar"
+            android:layout_marginTop="12dp" />
 
-        <TextView
-            android:id="@+id/tvCliente"
+        <Button
+            android:id="@+id/btnGuardarEdicion"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            android:text="Guardar cambios"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"/>
 
-        <TextView
-            android:id="@+id/tvDireccion"
+        <Button
+            android:id="@+id/btnCancelarEdicion"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            android:text="Cancelar"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"/>
 
-        <TextView
-            android:id="@+id/tvCP"
+        <!-- ====== PANEL EDICIÓN (oculto por defecto) ====== -->
+        <LinearLayout
+            android:id="@+id/panelEdicion"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1" />
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginTop="12dp">
 
-        <TextView
-            android:id="@+id/tvLocalidad"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1" />
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilCliente"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:counterEnabled="false">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCliente"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Cliente" />
+            </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilDireccion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etDireccion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Dirección" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/tvTelefono"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilCP"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCP"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="CP (5 dígitos)"/>
+            </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/tvEmail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilLocalidad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etLocalidad"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Localidad" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/tvDNI"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilTelefono"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etTelefono"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Teléfono"/>
+            </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/tvCIF"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Email"/>
+            </com.google.android.material.textfield.TextInputLayout>
 
-        <TextView
-            android:id="@+id/tvProducto"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
-
-        <TextView
-            android:id="@+id/tvCantidad"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
-
-        <TextView
-            android:id="@+id/tvObservaciones"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
-
-        <TextView
-            android:id="@+id/tvEstado"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="@style/TextAppearance.MaterialComponents.Body1"/>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilNotas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etNotas"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Notas u observaciones"
+                    android:minLines="2"
+                    android:gravity="top|start"/>
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnAnadirRuta"
@@ -124,15 +246,23 @@
             android:text="Añadir A La Ruta"
             android:layout_marginTop="12dp" />
 
+        <!-- Aviso para requisitos de guardado -->
+        <TextView
+            android:id="@+id/tvAvisoGuardar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Necesitas editar y completar: Dirección para poder guardar en la ruta."
+            android:textStyle="bold"
+            android:textColor="@android:color/holo_red_dark"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/btnCerrarDetalle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Cerrar"
             android:layout_marginTop="24dp" />
-
-
-
 
     </LinearLayout>
 </ScrollView>
