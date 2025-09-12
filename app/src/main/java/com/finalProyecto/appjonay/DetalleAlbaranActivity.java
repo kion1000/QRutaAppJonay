@@ -23,17 +23,17 @@ import org.json.JSONObject;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.finalProyecto.appjonay.data.CloudRouteStore;
+
+
 public class DetalleAlbaranActivity extends AppCompatActivity {
 
-    // Payload actual mostrado en pantalla (para Añadir a ruta / Editar)
-    private JSONObject lastPayload = null;
+    private JSONObject lastPayload = null;          // siempre normalizado
     private Stop.Source lastSource = Stop.Source.MANUAL;
 
-    // Botones principales
     private Button btnAddToRoute;
     private Button btnCerrar;
 
-    // UI lectura/edición
     private View panelLectura, panelEdicion;
     private Button btnEditar, btnGuardarEdicion, btnCancelarEdicion;
 
@@ -83,7 +83,7 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
         // 1) Obtener el dato que venga (nuevo flujo u otros)
         String raw = getIntent().getStringExtra(EscanearAlbaranActivity.EXTRA_ALBARAN_RAW);
-        if (raw == null) raw = getIntent().getStringExtra("albaranJson"); // compatibilidad
+        if (raw == null) raw = getIntent().getStringExtra("albaranJson"); // compat
 
         if (raw == null) {
             lastPayload = null;
@@ -92,13 +92,13 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
             return;
         }
 
-        // 2) JSON -> pintar; si no -> tratar como ID y buscar en Firestore
+        // 2) JSON -> normalizar y pintar; si no -> tratar como ID y buscar en Firestore
         if (raw.trim().startsWith("{")) {
             try {
                 JSONObject obj = new JSONObject(raw);
-                lastPayload = obj;
+                lastPayload = normalizeKeys(obj);      // 🔴 CLAVE: normalizar SIEMPRE
                 lastSource  = Stop.Source.OCR;
-                pintarDesdeJSON(obj);
+                pintarDesdeJSON(lastPayload);
                 if (btnEditar != null) btnEditar.setEnabled(true);
             } catch (JSONException e) {
                 cargarDesdeFirestorePorId(raw);
@@ -112,7 +112,6 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
         if (btnAddToRoute != null) {
             btnAddToRoute.setOnClickListener(v -> onAddToRouteClicked());
-            btnAddToRoute.setEnabled(false); // se ajusta en updateSaveUI()
         }
 
         if (btnEditar != null) {
@@ -132,11 +131,14 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         if (btnCancelarEdicion != null) {
             btnCancelarEdicion.setOnClickListener(v -> exitEditMode());
         }
+
+        // Fijar estado final del botón tras procesar raw y listeners
+        updateSaveUI();
     }
 
     // ---------- Acción: Añadir a la ruta ----------
     private void onAddToRouteClicked() {
-        if (btnAddToRoute != null) btnAddToRoute.setEnabled(false); // anti-doble click inmediato
+        if (btnAddToRoute != null) btnAddToRoute.setEnabled(false); // anti doble tap
 
         if (lastPayload == null) {
             Toast.makeText(this, "No hay datos para añadir", Toast.LENGTH_SHORT).show();
@@ -144,56 +146,80 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
             return;
         }
 
-        String direccion = getPayloadAny("direccion", "dirección");
-        String cp        = getPayloadAny("cp", "codigo_postal", "código_postal");
-        String loc       = getPayloadAny("localidad", "poblacion", "población", "ciudad");
+        // Leer canónicas (gracias a normalizeKeys); fallback a variantes
+        String direccion = safe(lastPayload.optString("direccion", getPayloadAny("direccion","dirección","Direccion","Dirección","address")));
+        String cp        = safe(lastPayload.optString("cp",        getPayloadAny("cp","CP","codigo_postal","código_postal","codigoPostal","postal_code","postalCode","zip")));
+        String loc       = safe(lastPayload.optString("localidad", getPayloadAny("localidad","Localidad","poblacion","población","ciudad","municipio","city","pueblo")));
 
-        if (TextUtils.isEmpty(direccion)) {
-            Toast.makeText(this, "Completa la dirección para poder guardar en la ruta", Toast.LENGTH_SHORT).show();
-            updateSaveUI();
-            return;
-        }
-        if (TextUtils.isEmpty(cp) && TextUtils.isEmpty(loc)) {
-            Toast.makeText(this, "Indica CP o Localidad para poder guardar en la ruta", Toast.LENGTH_SHORT).show();
+        String falta = "";
+        if (TextUtils.isEmpty(direccion)) falta = appendFalta(falta, "Dirección");
+        if (TextUtils.isEmpty(cp) && TextUtils.isEmpty(loc)) falta = appendFalta(falta, "CP o Localidad");
+
+        if (!falta.isEmpty()) {
+            Toast.makeText(this, "Completa: " + falta, Toast.LENGTH_SHORT).show();
             updateSaveUI();
             return;
         }
 
         Stop stop = Stop.fromJson(lastPayload, lastSource);
 
-        // ✅ Dedupe: no permitir añadir duplicados
+        // Dedupe local antes de bloquear definitivamente
         if (StopRepository.get().existsDuplicate(stop)) {
             Toast.makeText(this, "Este albarán ya está en la ruta", Toast.LENGTH_SHORT).show();
-            updateSaveUI(); // dejar el botón deshabilitado y mostrar aviso
+            updateSaveUI();
             return;
         }
 
-        boolean added = StopRepository.get().addIfNotExists(stop);
-        if (added) {
-            Toast.makeText(this, "Albarán añadido a la ruta", Toast.LENGTH_SHORT).show();
-        } else {
+        // Añadir local evitando duplicados
+        boolean added = StopRepository.get().addUnique(stop);
+        if (!added) {
             Toast.makeText(this, "Este albarán ya estaba en la ruta", Toast.LENGTH_SHORT).show();
+            updateSaveUI();
+            return;
         }
-        updateSaveUI();
+
+        Toast.makeText(this, "Añadido en el móvil. Sincronizando…", Toast.LENGTH_SHORT).show();
+
+        // === Subida a Firestore ===
+        String uid = CloudRouteStore.currentUid();
+        if (uid == null) {
+            // Sin sesión: solo local
+            Toast.makeText(this, "Sin sesión: guardado localmente", Toast.LENGTH_SHORT).show();
+            updateSaveUI();
+            return;
+        }
+
+        setSavingState(true);
+        String dayKey = CloudRouteStore.todayKey();
+        CloudRouteStore.saveStop(uid, dayKey, stop, (ok, e) -> {
+            setSavingState(false);
+            if (ok) {
+                Toast.makeText(this, "Sincronizado con la nube ✔", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Guardado local. Se subirá cuando haya conexión", Toast.LENGTH_LONG).show();
+            }
+            updateSaveUI();
+        });
     }
 
 
-    // ---------- PINTAR DESDE JSON (oculta vistas vacías) ----------
+    // ---------- PINTAR DESDE JSON ----------
     private void pintarDesdeJSON(JSONObject obj) {
-        String numero     = optAny(obj, "numeroAlbaran", "id_albaran", "id_albarán", "albaranId", "id");
+        // obj ya viene normalizado: usamos variantes sólo para mostrar si faltara algo
+        String numero     = optAny(obj, "id_albaran", "numeroAlbaran", "albaranId", "id");
         String fecha      = optAny(obj, "fecha");
-        String nombre     = optAny(obj, "nombreCliente", "cliente", "nombre");
-        String apellidos  = optAny(obj, "apellidosCliente", "apellidos");
-        String direccion  = optAny(obj, "direccion", "dirección");
-        String cp         = optAny(obj, "cp", "codigo_postal", "código_postal");
-        String localidad  = optAny(obj, "localidad", "poblacion", "población", "ciudad", "provincia");
+        String nombre     = optAny(obj, "cliente", "nombre", "nombreCliente");
+        String apellidos  = optAny(obj, "apellidos", "apellidosCliente");
+        String direccion  = optAny(obj, "direccion", "dirección", "address");
+        String cp         = optAny(obj, "cp", "codigo_postal", "código_postal", "postal_code", "postalCode", "zip");
+        String localidad  = optAny(obj, "localidad", "poblacion", "población", "ciudad", "municipio", "city");
         String telefono   = optAny(obj, "telefono", "teléfono", "phone");
-        String email      = optAny(obj, "email", "correo");
+        String email      = optAny(obj, "email", "correo", "mail");
         String dni        = optAny(obj, "dni");
         String cif        = optAny(obj, "cif");
         String producto   = optAny(obj, "producto");
         String cantidad   = optAny(obj, "cantidad", "qty");
-        String observ     = optAny(obj, "observaciones", "notas");
+        String observ     = optAny(obj, "observaciones", "notas", "comments");
         String estado     = optAny(obj, "estado");
 
         String cliente = buildNombreCompleto(nombre, apellidos);
@@ -215,7 +241,6 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
         if (btnEditar != null) btnEditar.setEnabled(true);
 
-        // Actualiza botón y aviso según reglas unificadas
         updateSaveUI();
     }
 
@@ -278,11 +303,11 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
             obj.put("estado",     safe(doc.getString("estado")));
         } catch (JSONException ignored) {}
 
-        lastPayload = obj;
+        lastPayload = normalizeKeys(obj);  // 🔴 normalizar lo leído
         lastSource  = Stop.Source.QR;
 
         if (btnEditar != null) btnEditar.setEnabled(true);
-        pintarDesdeJSON(obj); // dentro llama updateSaveUI()
+        pintarDesdeJSON(lastPayload);
     }
 
     // =================== MODO EDICIÓN ===================
@@ -290,14 +315,13 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
     private void enterEditMode() {
         editing = true;
 
-        // Rellena campos con lastPayload
-        String cliente   = getPayloadAny("cliente", "nombre");
-        String direccion = getPayloadAny("direccion", "dirección");
-        String cp        = getPayloadAny("cp", "codigo_postal", "código_postal");
-        String localidad = getPayloadAny("localidad", "poblacion", "población", "ciudad");
+        String cliente   = getPayloadAny("cliente", "nombre", "nombreCliente");
+        String direccion = getPayloadAny("direccion", "dirección", "address");
+        String cp        = getPayloadAny("cp", "codigo_postal", "código_postal", "postal_code", "postalCode", "zip");
+        String localidad = getPayloadAny("localidad", "poblacion", "población", "ciudad", "municipio", "city");
         String telefono  = getPayloadAny("telefono", "teléfono", "phone");
-        String email     = getPayloadAny("email", "correo");
-        String notas     = getPayloadAny("observaciones", "notas");
+        String email     = getPayloadAny("email", "correo", "mail");
+        String notas     = getPayloadAny("observaciones", "notas", "comments");
 
         setText(etCliente, cliente);
         setText(etDireccion, direccion);
@@ -309,14 +333,12 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
         clearErrors();
 
-        // UI
         panelLectura.setVisibility(View.GONE);
         panelEdicion.setVisibility(View.VISIBLE);
         btnEditar.setVisibility(View.GONE);
         btnGuardarEdicion.setVisibility(View.VISIBLE);
         btnCancelarEdicion.setVisibility(View.VISIBLE);
 
-        // Evita añadir mientras editas
         if (btnAddToRoute != null) {
             btnAddToRoute.setEnabled(false);
             btnAddToRoute.setText("Añadir a la ruta");
@@ -335,7 +357,6 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         btnCancelarEdicion.setVisibility(View.GONE);
         btnEditar.setVisibility(View.VISIBLE);
 
-        // Recalcula estado de guardado/aviso
         updateSaveUI();
     }
 
@@ -354,39 +375,15 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
         boolean ok = true;
 
-        // Dirección obligatoria
-        if (TextUtils.isEmpty(direccion)) {
-            tilDireccion.setError("La dirección es obligatoria");
-            ok = false;
-        }
-
-        // Al menos CP o Localidad
+        if (TextUtils.isEmpty(direccion)) { tilDireccion.setError("La dirección es obligatoria"); ok = false; }
         boolean hasCpOrLoc = !TextUtils.isEmpty(cp) || !TextUtils.isEmpty(localidad);
-        if (!hasCpOrLoc) {
-            tilCP.setError("Indica CP o Localidad");
-            tilLocalidad.setError("Indica CP o Localidad");
-            ok = false;
-        }
-
-        // CP solo si viene informado
-        if (!TextUtils.isEmpty(cp) && !isValidCP(cp)) {
-            tilCP.setError("CP inválido (ej: 35005)");
-            ok = false;
-        }
-
-        // Teléfono/Email opcionales: validar si hay texto
-        if (!TextUtils.isEmpty(telefono) && !isValidTelefono(telefono)) {
-            tilTelefono.setError("Teléfono inválido");
-            ok = false;
-        }
-        if (!TextUtils.isEmpty(email) && !isValidEmail(email)) {
-            tilEmail.setError("Email inválido");
-            ok = false;
-        }
+        if (!hasCpOrLoc) { tilCP.setError("Indica CP o Localidad"); tilLocalidad.setError("Indica CP o Localidad"); ok = false; }
+        if (!TextUtils.isEmpty(cp) && !isValidCP(cp)) { tilCP.setError("CP inválido (ej: 35005)"); ok = false; }
+        if (!TextUtils.isEmpty(telefono) && !isValidTelefono(telefono)) { tilTelefono.setError("Teléfono inválido"); ok = false; }
+        if (!TextUtils.isEmpty(email) && !isValidEmail(email)) { tilEmail.setError("Email inválido"); ok = false; }
 
         if (!ok) return;
 
-        // Actualiza payload
         try {
             lastPayload.put("cliente", cliente);
             lastPayload.put("direccion", direccion);
@@ -397,7 +394,6 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
             lastPayload.put("observaciones", notas);
         } catch (JSONException ignored) {}
 
-        // Refresca vista de lectura y sal de edición
         pintarDesdeJSON(lastPayload);
         exitEditMode();
 
@@ -416,16 +412,18 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
     // Validaciones (España)
     private boolean isValidCP(String cp) {
-        return cp.matches("(?:0[1-9]|[1-4][0-9]|5[0-2])\\d{3}");
+        return cp != null && cp.matches("(?:0[1-9]|[1-4][0-9]|5[0-2])\\d{3}");
     }
 
     private boolean isValidTelefono(String t) {
+        if (t == null) return false;
         Pattern p = Pattern.compile("\\b(?:\\+?34\\s*[-.]?\\s*)?(\\d{3}\\s*[-.]?\\s*\\d{2}\\s*[-.]?\\s*\\d{2}\\s*[-.]?\\s*\\d{2}|\\d{9})\\b");
         Matcher m = p.matcher(t.replaceAll("\\s+", ""));
         return m.find();
     }
 
     private boolean isValidEmail(String e) {
+        if (e == null) return false;
         Pattern p = Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$", Pattern.CASE_INSENSITIVE);
         return p.matcher(e).find();
     }
@@ -480,13 +478,11 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         return et == null || et.getText() == null ? "" : et.getText().toString().trim();
     }
 
-    /** Lee del payload cualquiera de las claves dadas (maneja acentos/variantes). */
     private String getPayloadAny(String... keys) {
         return lastPayload == null ? "" : optAny(lastPayload, keys);
     }
 
-    /** Reglas para habilitar/avisar guardado en ruta (mismas que al guardar). */
-    /** Reglas para habilitar/avisar guardado en ruta (mismas que al guardar) + dedupe. */
+    // --------- Save UI (canónicas + fallback) -----------
     private void updateSaveUI() {
         if (btnAddToRoute == null || tvAvisoGuardar == null) return;
 
@@ -496,17 +492,13 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
             return;
         }
 
-        String direccion = getPayloadAny("direccion", "dirección");
-        String cp        = getPayloadAny("cp", "codigo_postal", "código_postal");
-        String loc       = getPayloadAny("localidad", "poblacion", "población", "ciudad");
+        String direccion = safe(lastPayload.optString("direccion", getPayloadAny("direccion","dirección","Direccion","Dirección","address")));
+        String cp        = safe(lastPayload.optString("cp",        getPayloadAny("cp","CP","codigo_postal","código_postal","codigoPostal","postal_code","postalCode","zip")));
+        String loc       = safe(lastPayload.optString("localidad", getPayloadAny("localidad","Localidad","poblacion","población","ciudad","municipio","city","pueblo")));
 
         String falta = "";
-        if (TextUtils.isEmpty(direccion)) {
-            falta = appendFalta(falta, "Dirección");
-        }
-        if (TextUtils.isEmpty(cp) && TextUtils.isEmpty(loc)) {
-            falta = appendFalta(falta, "CP o Localidad");
-        }
+        if (TextUtils.isEmpty(direccion)) falta = appendFalta(falta, "Dirección");
+        if (TextUtils.isEmpty(cp) && TextUtils.isEmpty(loc)) falta = appendFalta(falta, "CP o Localidad");
 
         // Dedupe
         Stop temp = Stop.fromJson(lastPayload, lastSource);
@@ -530,8 +522,71 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         }
     }
 
-
     private String appendFalta(String base, String item) {
         return (base == null || base.isEmpty()) ? item : base + ", " + item;
     }
+
+    // --- Normalización robusta de claves ---
+    private JSONObject normalizeKeys(JSONObject src) {
+        if (src == null) return new JSONObject();
+        JSONObject out = new JSONObject();
+        try {
+            java.util.Iterator<String> it = src.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                Object v = src.opt(k);
+                out.put(normalizeKey(k), v);
+            }
+        } catch (Exception ignored) {}
+        return out;
+    }
+
+    private String normalizeKey(String k) {
+        if (k == null) return "";
+        String n = java.text.Normalizer.normalize(k, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "") // quitar acentos
+                .trim()
+                .toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("\\s+", " ")
+                .replace("_", " ")
+                .trim();
+
+        switch (n) {
+            case "numero albaran": case "numeroalbaran":
+            case "id albaran": case "id_albaran":
+            case "albaranid": case "id":
+                return "id_albaran";
+            case "direccion": case "direc": case "address":
+                return "direccion";
+            case "cp": case "codigo postal": case "codigo_postal":
+            case "codigopostal": case "postal_code": case "postalcode":
+            case "zip":
+                return "cp";
+            case "localidad": case "poblacion": case "población":
+            case "municipio": case "ciudad": case "city": case "pueblo":
+                return "localidad";
+            case "cliente": case "nombre": case "nombre cliente":
+                return "cliente";
+            case "apellidos": case "apellidos cliente":
+                return "apellidos";
+            case "telefono": case "tel": case "phone": case "tlf":
+                return "telefono";
+            case "email": case "correo": case "mail":
+                return "email";
+            case "observaciones": case "notas": case "nota":
+            case "comentarios": case "comments":
+                return "observaciones";
+            default:
+                return n.replace(" ", "_");
+        }
+    }
+
+    private void setSavingState(boolean saving) {
+        if (btnAddToRoute == null) return;
+        btnAddToRoute.setEnabled(!saving);
+        btnAddToRoute.setText(saving ? "Añadiendo…" : "Añadir a la ruta");
+    }
+
+
 }
+
