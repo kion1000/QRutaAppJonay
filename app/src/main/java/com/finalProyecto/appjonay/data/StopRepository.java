@@ -14,6 +14,7 @@ import java.util.List;
 /**
  * Repositorio local (SharedPreferences) de paradas/Stops para la ruta del día.
  * - Dedupe por id (UUID) o por (direccion|cp|localidad) normalizados.
+ * - Respeta tombstones (isDeleted/deletedAt) al hacer merge con Firestore.
  * - API thread-safe con métodos sincronizados.
  */
 public class StopRepository {
@@ -45,7 +46,9 @@ public class StopRepository {
         stops.add(s);
         save();
     }
+
     public synchronized boolean addUnique(Stop s) { return addIfNotExists(s); }
+
     public synchronized boolean addIfNotExists(Stop s) {
         if (s == null) return false;
         if (existsDuplicate(s)) return false;
@@ -63,11 +66,32 @@ public class StopRepository {
         return false;
     }
 
+    /** Elimina por posición (legacy). */
     public synchronized void removeAt(int position) {
         if (position >= 0 && position < stops.size()) {
             stops.remove(position);
             save();
         }
+    }
+
+    /** NUEVO: elimina por id (usado por la UI con swipe). */
+    public synchronized boolean remove(String id) {
+        if (id == null) return false;
+        int idx = indexOfById(id);
+        if (idx >= 0) {
+            stops.remove(idx);
+            save();
+            return true;
+        }
+        // Fallback: por clave de dedupe si el id no coincide (compat docs antiguos)
+        String fakeKey = "uuid:" + norm(id);
+        idx = indexOfByKey(fakeKey);
+        if (idx >= 0) {
+            stops.remove(idx);
+            save();
+            return true;
+        }
+        return false;
     }
 
     public synchronized void clear() {
@@ -76,15 +100,26 @@ public class StopRepository {
     }
 
     public synchronized int size() { return stops.size(); }
+
     public synchronized List<Stop> getAll() {
         return Collections.unmodifiableList(stops);
     }
 
     // ---------------- Merge remoto (Firestore -> Local) ----------------
+
+    /** Merge simple (compat): no reemplaza locales existentes. */
     public synchronized void mergeRemote(Collection<Stop> remoteStops) {
         mergeRemote(remoteStops, /*replaceLocal=*/false);
     }
 
+    /**
+     * Merge con respeto a tombstones y timestamps.
+     * - Si remoto.isDeleted=true y (deletedAt|updatedAt) remoto >= updatedAt local => elimina local.
+     * - Si remoto vivo:
+     *    * no existe local => añade
+     *    * existe y remoto.updatedAt > local.updatedAt => reemplaza por remoto
+     * - replaceLocal=true limpia lista antes de fusionar.
+     */
     public synchronized void mergeRemote(Collection<Stop> remoteStops, boolean replaceLocal) {
         if (remoteStops == null) return;
 
@@ -92,10 +127,46 @@ public class StopRepository {
             stops.clear();
         }
 
-        for (Stop s : remoteStops) {
-            if (s == null) continue;
-            if (existsDuplicate(s)) continue; // evita dobles
-            stops.add(s);
+        for (Stop r : remoteStops) {
+            if (r == null) continue;
+
+            // 1) Busca por ID (tombstones traen id)
+            int idx = indexOfById(r.id);
+
+            // 2) Si no, intenta por albarán (si viene)
+            if (idx < 0 && r.albaranId != null && !r.albaranId.trim().isEmpty()) {
+                String albKey = "alb:" + norm(r.albaranId);
+                idx = indexOfByKey(albKey);
+            }
+
+            // 3) Último recurso: la clave habitual
+            if (idx < 0) {
+                String rKey = dedupeKey(r);
+                idx = indexOfByKey(rKey);
+            }
+
+            if (r.isDeleted) {
+                long rDel = (r.deletedAt != null) ? r.deletedAt : r.updatedAt;
+                if (idx >= 0) {
+                    Stop local = stops.get(idx);
+                    long lUpd = Math.max(local.updatedAt, local.deletedAt != null ? local.deletedAt : -1L);
+                    if (rDel >= lUpd) {
+                        stops.remove(idx); // respeta borrado remoto reciente
+                    }
+                }
+                // si no estaba local, nada que hacer
+                continue;
+            }
+
+            // Remoto NO borrado
+            if (idx < 0) {
+                stops.add(r); // nuevo
+            } else {
+                Stop local = stops.get(idx);
+                if (r.updatedAt > local.updatedAt) {
+                    stops.set(idx, r); // remoto más nuevo => sustituir
+                }
+            }
         }
         save();
     }
@@ -109,6 +180,7 @@ public class StopRepository {
             Stop cur = it.next();
             if (dedupeKey(cur).equals(k)) {
                 it.remove();
+                save();
                 return;
             }
         }
@@ -148,16 +220,39 @@ public class StopRepository {
         return n.replaceAll("\\s+", " ");
     }
 
-    private String dedupeKey(Stop s) {
-        // 1) PRIMARIO: UUID único del stop (debe ser el mismo local/remoto)
-        String uuid = norm(s.id);
-        if (!uuid.isEmpty()) return "uuid:" + uuid;
 
-        // 2) SECUNDARIO: id de albarán (si existiera)
+    private String dedupeKey(Stop s) {
+        // 1) PRIMARIO: albarán si existe (estable)
         String alb = norm(s.albaranId);
         if (!alb.isEmpty()) return "alb:" + alb;
 
-        // 3) Fallback: dirección | cp | localidad (normalizados)
-        return "addr:" + norm(s.direccion) + "|" + norm(s.cp) + "|" + norm(s.localidad);
+        // 2) SECUNDARIO: dirección | cp | localidad (para manuales)
+        String dir = norm(s.direccion), cp = norm(s.cp), loc = norm(s.localidad);
+        if (!dir.isEmpty() || !cp.isEmpty() || !loc.isEmpty()) {
+            return "addr:" + dir + "|" + cp + "|" + loc;
+        }
+
+        // 3) Fallback: UUID
+        String uuid = norm(s.id);
+        if (!uuid.isEmpty()) return "uuid:" + uuid;
+
+        return "fallback:" + norm(s.cliente);
+    }
+
+
+    private int indexOfById(String id) {
+        if (id == null) return -1;
+        String nid = norm(id);
+        for (int i = 0; i < stops.size(); i++) {
+            if (norm(stops.get(i).id).equals(nid)) return i;
+        }
+        return -1;
+    }
+
+    private int indexOfByKey(String key) {
+        for (int i = 0; i < stops.size(); i++) {
+            if (dedupeKey(stops.get(i)).equals(key)) return i;
+        }
+        return -1;
     }
 }

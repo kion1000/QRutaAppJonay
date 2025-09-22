@@ -2,6 +2,7 @@ package com.finalProyecto.appjonay;
 
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -10,6 +11,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.finalProyecto.appjonay.data.CloudRouteStore;
 import com.finalProyecto.appjonay.data.Stop;
 import com.finalProyecto.appjonay.data.StopRepository;
 import com.google.android.material.textfield.TextInputEditText;
@@ -23,13 +25,15 @@ import org.json.JSONObject;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.finalProyecto.appjonay.data.CloudRouteStore;
-
-
 public class DetalleAlbaranActivity extends AppCompatActivity {
 
-    private JSONObject lastPayload = null;          // siempre normalizado
+    private static final String TAG = "DetalleAlbaran";
+
+    private JSONObject lastPayload = null;          // SIEMPRE normalizado
     private Stop.Source lastSource = Stop.Source.MANUAL;
+
+    // >>> NUEVO: Stop estable para toda la pantalla <<<
+    private Stop currentStop = null;
 
     private Button btnAddToRoute;
     private Button btnCerrar;
@@ -97,8 +101,9 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
             try {
                 JSONObject obj = new JSONObject(raw);
                 lastPayload = normalizeKeys(obj);      // 🔴 CLAVE: normalizar SIEMPRE
-                lastSource  = Stop.Source.OCR;
+                lastSource  = Stop.Source.OCR;         // si este JSON viene del escáner/ocr
                 pintarDesdeJSON(lastPayload);
+                rebuildCurrentStopPreservingId();      // <<< crea/actualiza currentStop
                 if (btnEditar != null) btnEditar.setEnabled(true);
             } catch (JSONException e) {
                 cargarDesdeFirestorePorId(raw);
@@ -138,15 +143,16 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
     // ---------- Acción: Añadir a la ruta ----------
     private void onAddToRouteClicked() {
-        if (btnAddToRoute != null) btnAddToRoute.setEnabled(false); // anti doble tap
+        // Anti-doble tap
+        setSavingState(true);
 
         if (lastPayload == null) {
             Toast.makeText(this, "No hay datos para añadir", Toast.LENGTH_SHORT).show();
-            updateSaveUI();
+            setSavingState(false);
             return;
         }
 
-        // Leer canónicas (gracias a normalizeKeys); fallback a variantes
+        // Validación mínima Dirección + (CP o Localidad)
         String direccion = safe(lastPayload.optString("direccion", getPayloadAny("direccion","dirección","Direccion","Dirección","address")));
         String cp        = safe(lastPayload.optString("cp",        getPayloadAny("cp","CP","codigo_postal","código_postal","codigoPostal","postal_code","postalCode","zip")));
         String loc       = safe(lastPayload.optString("localidad", getPayloadAny("localidad","Localidad","poblacion","población","ciudad","municipio","city","pueblo")));
@@ -157,55 +163,64 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
         if (!falta.isEmpty()) {
             Toast.makeText(this, "Completa: " + falta, Toast.LENGTH_SHORT).show();
+            setSavingState(false);
             updateSaveUI();
             return;
         }
 
-        Stop stop = Stop.fromJson(lastPayload, lastSource);
+        // >>> Garantiza una única instancia con id estable <<<
+        rebuildCurrentStopPreservingId();
+        currentStop.normalize();
+        currentStop.touch();
 
-        // Dedupe local antes de bloquear definitivamente
-        if (StopRepository.get().existsDuplicate(stop)) {
+        // Dedupe local
+        if (StopRepository.get().existsDuplicate(currentStop)) {
             Toast.makeText(this, "Este albarán ya está en la ruta", Toast.LENGTH_SHORT).show();
+            setSavingState(false);
             updateSaveUI();
             return;
         }
 
         // Añadir local evitando duplicados
-        boolean added = StopRepository.get().addUnique(stop);
+        boolean added = StopRepository.get().addIfNotExists(currentStop);
         if (!added) {
             Toast.makeText(this, "Este albarán ya estaba en la ruta", Toast.LENGTH_SHORT).show();
+            setSavingState(false);
             updateSaveUI();
             return;
         }
 
+        Log.d(TAG, "Guardando stop (local + nube): " + currentStop.toJson());
         Toast.makeText(this, "Añadido en el móvil. Sincronizando…", Toast.LENGTH_SHORT).show();
 
         // === Subida a Firestore ===
         String uid = CloudRouteStore.currentUid();
         if (uid == null) {
-            // Sin sesión: solo local
+            // Sin sesión: solo local (Firestore lo encola si más tarde hay login)
             Toast.makeText(this, "Sin sesión: guardado localmente", Toast.LENGTH_SHORT).show();
+            setSavingState(false);
             updateSaveUI();
             return;
         }
 
-        setSavingState(true);
         String dayKey = CloudRouteStore.todayKey();
-        CloudRouteStore.saveStop(uid, dayKey, stop, (ok, e) -> {
-            setSavingState(false);
-            if (ok) {
-                Toast.makeText(this, "Sincronizado con la nube ✔", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Guardado local. Se subirá cuando haya conexión", Toast.LENGTH_LONG).show();
-            }
-            updateSaveUI();
+        CloudRouteStore.saveStop(uid, dayKey, currentStop, (ok, e) -> {
+            runOnUiThread(() -> {
+                setSavingState(false);
+                if (ok) {
+                    Toast.makeText(this, "Sincronizado con la nube ✔", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Guardado local. Se subirá cuando haya conexión", Toast.LENGTH_LONG).show();
+                    if (e != null) Log.w(TAG, "saveStop fallo", e);
+                }
+                // Tras añadir, el botón quedará deshabilitado porque ahora es duplicado
+                updateSaveUI();
+            });
         });
     }
 
-
     // ---------- PINTAR DESDE JSON ----------
     private void pintarDesdeJSON(JSONObject obj) {
-        // obj ya viene normalizado: usamos variantes sólo para mostrar si faltara algo
         String numero     = optAny(obj, "id_albaran", "numeroAlbaran", "albaranId", "id");
         String fecha      = optAny(obj, "fecha");
         String nombre     = optAny(obj, "cliente", "nombre", "nombreCliente");
@@ -269,6 +284,7 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
                                         hide(R.id.tvObservaciones); hide(R.id.tvEstado);
 
                                         lastPayload = null;
+                                        currentStop = null;
                                         if (btnEditar != null) btnEditar.setEnabled(false);
                                         updateSaveUI();
                                     }
@@ -278,6 +294,7 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     show(R.id.tvNumeroAlbaran, "Número: ", posibleId + " (error de carga)");
                     lastPayload = null;
+                    currentStop = null;
                     if (btnEditar != null) btnEditar.setEnabled(false);
                     updateSaveUI();
                 });
@@ -308,6 +325,9 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
 
         if (btnEditar != null) btnEditar.setEnabled(true);
         pintarDesdeJSON(lastPayload);
+
+        // >>> reconstruir Stop con ID estable (por si ya existía uno) <<<
+        rebuildCurrentStopPreservingId();
     }
 
     // =================== MODO EDICIÓN ===================
@@ -395,6 +415,10 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         } catch (JSONException ignored) {}
 
         pintarDesdeJSON(lastPayload);
+
+        // >>> Rehacer currentStop manteniendo el mismo id <<<
+        rebuildCurrentStopPreservingId();
+
         exitEditMode();
 
         Toast.makeText(this, "Cambios guardados", Toast.LENGTH_SHORT).show();
@@ -455,9 +479,7 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         return (n + " " + a).trim();
     }
 
-    private String safe(String s) {
-        return s == null ? "" : s.trim();
-    }
+    private String safe(String s) { return s == null ? "" : s.trim(); }
 
     private String optAny(JSONObject obj, String... keys) {
         if (obj == null) return "";
@@ -500,9 +522,10 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(direccion)) falta = appendFalta(falta, "Dirección");
         if (TextUtils.isEmpty(cp) && TextUtils.isEmpty(loc)) falta = appendFalta(falta, "CP o Localidad");
 
-        // Dedupe
-        Stop temp = Stop.fromJson(lastPayload, lastSource);
-        boolean dup = StopRepository.get().existsDuplicate(temp);
+        // Dedupe comparando contra repo (si ya está, deshabilita)
+        // Asegura que currentStop refleja lastPayload para que la key sea estable
+        rebuildCurrentStopPreservingId();
+        boolean dup = StopRepository.get().existsDuplicate(currentStop);
 
         if (dup) {
             btnAddToRoute.setEnabled(false);
@@ -587,6 +610,14 @@ public class DetalleAlbaranActivity extends AppCompatActivity {
         btnAddToRoute.setText(saving ? "Añadiendo…" : "Añadir a la ruta");
     }
 
-
+    // ============ NUEVO: construir/actualizar currentStop preservando el id ============
+    private void rebuildCurrentStopPreservingId() {
+        if (lastPayload == null) return;
+        Stop parsed = Stop.fromJson(lastPayload, lastSource);
+        if (currentStop != null && currentStop.id != null && !currentStop.id.isEmpty()) {
+            // Mantén el mismo UUID para que no cambie la identidad local
+            parsed.id = currentStop.id;
+        }
+        currentStop = parsed;
+    }
 }
-

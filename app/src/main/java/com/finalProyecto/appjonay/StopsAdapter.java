@@ -1,4 +1,3 @@
-
 package com.finalProyecto.appjonay;
 
 import android.view.LayoutInflater;
@@ -11,19 +10,41 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.finalProyecto.appjonay.data.Stop;
-import com.finalProyecto.appjonay.data.StopRepository;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class StopsAdapter extends RecyclerView.Adapter<StopsAdapter.VH> {
 
-    private final ArrayList<Stop> items = new ArrayList<>();
+    /** Callback para acciones del usuario en cada item (p.ej. Eliminar). */
+    public interface OnStopActionListener {
+        void onDelete(@NonNull Stop stop, int position);
+    }
 
-    public void submit(List<Stop> data) {
+    private final ArrayList<Stop> items = new ArrayList<>();
+    private final OnStopActionListener listener;
+
+    public StopsAdapter(@NonNull OnStopActionListener listener) {
+        this.listener = listener;
+        setHasStableIds(true);
+    }
+
+    /** Sustituye toda la lista que muestra el adapter. */
+    public void submit(@NonNull List<Stop> data) {
         items.clear();
         items.addAll(data);
         notifyDataSetChanged();
+    }
+
+    /** Acceso seguro al item para swipe, etc. */
+    public Stop getItem(int position) {
+        if (position < 0 || position >= items.size()) return null;
+        return items.get(position);
+    }
+
+    @Override public long getItemId(int position) {
+        Stop s = getItem(position);
+        return (s != null && s.id != null) ? s.id.hashCode() : RecyclerView.NO_ID;
     }
 
     @NonNull @Override
@@ -36,24 +57,22 @@ public class StopsAdapter extends RecyclerView.Adapter<StopsAdapter.VH> {
     @Override
     public void onBindViewHolder(@NonNull VH h, int pos) {
         Stop s = items.get(pos);
-        String cliente = emptyToDash(s.cliente);
-        String dir = emptyToDash(s.direccion);
-        h.tv1.setText(cliente + " — " + dir);
 
-        String cp = emptyToDash(s.cp);
-        String loc = emptyToDash(s.localidad);
-        h.tv2.setText(cp + " • " + loc);
-
-        h.tvSource.setText(s.source != null ? s.source.name() : "MANUAL");
+        h.tv1.setText(emptyToDash(s.cliente) + " — " + emptyToDash(s.direccion));
+        h.tv2.setText(emptyToDash(s.cp) + " • " + emptyToDash(s.localidad));
+        h.tvSource.setText(s.source != null ? String.valueOf(s.source) : "MANUAL");
 
         h.btnEliminar.setOnClickListener(v -> {
-            StopRepository.get().removeAt(h.getAdapterPosition());
-            submit(StopRepository.get().getAll());
+            int adapterPos = h.getAdapterPosition();                 // ✅ compat
+            if (adapterPos == RecyclerView.NO_POSITION) return;      // seguridad
+            Stop current = getItem(adapterPos);
+            if (current != null && listener != null) {
+                listener.onDelete(current, adapterPos);
+            }
         });
     }
 
-    @Override
-    public int getItemCount() { return items.size(); }
+    @Override public int getItemCount() { return items.size(); }
 
     static class VH extends RecyclerView.ViewHolder {
         final TextView tv1, tv2, tvSource;

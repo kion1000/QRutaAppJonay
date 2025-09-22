@@ -6,11 +6,19 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.util.HashMap;
 import java.util.Map;
+
+// 🔴 IMPORTANTE: añade estas imports para los errores específicos
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
+import com.google.firebase.auth.FirebaseAuthException;
 
 public class RegisterActivity extends AppCompatActivity {
     private EditText etNombre, etApellidos, etEmail, etTelefono, etPassword;
@@ -47,23 +55,19 @@ public class RegisterActivity extends AppCompatActivity {
         String password = etPassword.getText().toString().trim();
         String estado = "pendiente"; // Por defecto
 
-        // Validación simple
         if (nombre.isEmpty() || apellidos.isEmpty() || email.isEmpty() || telefono.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Crear usuario en Firebase Auth
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        // Enviar email de verificación
                         FirebaseUser user = mAuth.getCurrentUser();
                         if (user != null) {
                             user.sendEmailVerification()
                                     .addOnCompleteListener(verifyTask -> {
                                         if (verifyTask.isSuccessful()) {
-                                            // Guardar datos en Firestore SOLO si el email se ha enviado
                                             String uid = user.getUid();
                                             Map<String, Object> usuario = new HashMap<>();
                                             usuario.put("nombre", nombre);
@@ -76,7 +80,6 @@ public class RegisterActivity extends AppCompatActivity {
                                                     .set(usuario)
                                                     .addOnSuccessListener(aVoid -> {
                                                         Toast.makeText(this, "Registro correcto. Confirma tu email antes de iniciar sesión.", Toast.LENGTH_LONG).show();
-                                                        // Opcional: cerrar esta pantalla y volver al login
                                                         startActivity(new Intent(this, LoginActivity.class));
                                                         finish();
                                                     })
@@ -89,7 +92,25 @@ public class RegisterActivity extends AppCompatActivity {
                                     });
                         }
                     } else {
-                        Toast.makeText(this, "Error al registrar: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        // 🔴 Aquí mejoramos la gestión de errores
+                        Exception ex = task.getException();
+                        String msg = "Error al registrar.";
+
+                        if (ex instanceof FirebaseAuthWeakPasswordException) {
+                            msg = "La contraseña es demasiado débil. Usa al menos 6-8 caracteres con números y letras.";
+                        } else if (ex instanceof FirebaseAuthInvalidCredentialsException) {
+                            msg = "El email no es válido.";
+                        } else if (ex instanceof FirebaseAuthUserCollisionException) {
+                            msg = "Ese email ya está registrado.";
+                        } else if (ex instanceof FirebaseAuthException) {
+                            String code = ((FirebaseAuthException) ex).getErrorCode();
+                            msg = "Error de autenticación: " + code;
+                        } else if (ex != null) {
+                            msg = "Error: " + ex.getMessage();
+                        }
+
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                        android.util.Log.w("Register", "register error", ex);
                     }
                 });
     }
