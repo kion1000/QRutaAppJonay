@@ -7,7 +7,7 @@
 ## 🚀 Características principales
 
 - **Registro y autenticación segura** con correo electrónico, Google y verificación por email (Firebase Auth).
-- **Escaneo de albaranes** mediante QR/código de barras: al inicio de la jornada el repartidor escanea sus albaranes y la app carga automáticamente los datos de clientes, direcciones y entregas.
+- **Escaneo de albaranes** mediante QR/IA/Entrada Manual: al inicio de la jornada el repartidor escanea sus albaranes y la app carga automáticamente los datos de clientes, direcciones y entregas.
 - **Generación automática de ruta óptima** usando la API de Google Maps: la app calcula y muestra el recorrido más eficiente para realizar todas las entregas.
 - **Gestión integral de entregas**:
   - Marcar como entregada, posponer o registrar incidencia.
